@@ -112,7 +112,7 @@ public class Crash {
     public void setFlightType(String flightType) { this.flightType = flightType; }
 
     public Boolean getSurvivors() { return survivors; }
-    public void setSurvivors(boolean survivors) { this.survivors = survivors; }
+    public void setSurvivors(Boolean survivors) { this.survivors = survivors; }
 
     public String getCrashSite() { return crashSite; }
     public void setCrashSite(String crashSite) { this.crashSite = crashSite; }

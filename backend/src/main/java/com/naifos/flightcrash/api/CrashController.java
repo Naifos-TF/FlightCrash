@@ -25,10 +25,12 @@ public class CrashController {
             @RequestParam(required = false) String country,
             @RequestParam(required = false) String region,
             @RequestParam(required = false) String crashCause,
+            @RequestParam(required = false) String operator,
+            @RequestParam(required = false) String aircraft,
             @RequestParam(defaultValue = "50") int limit
     ) {
         int safeLimit = Math.min(Math.max(limit, 1), 200);
-        return repo.search(q, year, survivors, country, region, crashCause, PageRequest.of(0, safeLimit));
+        return repo.search(q, year, survivors, country, region, crashCause, operator, aircraft, PageRequest.of(0, safeLimit));
     }
 
     @GetMapping("/facets")
@@ -39,7 +41,9 @@ public class CrashController {
                 repo.distinctSurvivors(),
                 repo.distinctCountries(),
                 repo.distinctRegions(),
-                repo.distinctCrashCauses()
+                repo.distinctCrashCauses(),
+                repo.distinctOperators(),
+                repo.distinctAircrafts()
         );
     }
 
@@ -48,6 +52,8 @@ public class CrashController {
             List<Boolean> survivors,
             List<String> countries,
             List<String> regions,
-            List<String> crashCauses
+            List<String> crashCauses,
+            List<String> operators,
+            List<String> aircrafts
     ) {}
 }

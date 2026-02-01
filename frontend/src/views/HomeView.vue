@@ -5,8 +5,8 @@
       <div class="navLeft">
         <div class="logo">✈︎</div>
         <div class="brand">
-          <div class="brandName">FlightCrash</div>
-          <div class="brandTag">Encyclopédie des crashs</div>
+          <div class="brandName">Plane Crash</div>
+          <div class="brandTag">Encyclopédie des crashs d'avion</div>
         </div>
       </div>
 
@@ -72,6 +72,22 @@
               </select>
             </div>
 
+            <div class="filter">
+              <label class="filterLabel">Operator</label>
+              <select v-model="filters.operator" class="filterSelect" @change="search">
+                <option value="">Tous</option>
+                <option v-for="op in options.operators" :key="op" :value="op">{{ op }}</option>
+              </select>
+            </div>
+
+            <div class="filter">
+              <label class="filterLabel">Aircraft</label>
+              <select v-model="filters.aircraft" class="filterSelect" @change="search">
+                <option value="">Tous</option>
+                <option v-for="ac in options.aircrafts" :key="ac" :value="ac">{{ ac }}</option>
+              </select>
+            </div>
+
             <div class="filter filterSpan2">
               <label class="filterLabel">Crash cause</label>
               <select v-model="filters.crashCause" class="filterSelect" @change="search">
@@ -124,13 +140,6 @@
 
       <!-- RIGHT: Details -->
       <section class="rightPane">
-        <div class="detailsHeader">
-          <h2 class="sectionTitle">Fiche crash</h2>
-          <div class="detailsHeaderActions" v-if="selected">
-            <button class="ghostBtn" @click="copyId(String(selected.id))">Copier l’ID</button>
-            <button class="primaryBtn" @click="openDetails(selected.id)">Ouvrir détail</button>
-          </div>
-        </div>
 
         <div v-if="!selected" class="empty detailsEmpty">
           Sélectionne un résultat pour afficher les détails.
@@ -214,14 +223,20 @@ const filters = ref({
   country: "",
   region: "",
   crashCause: "",
+  operator: "",
+  aircraft: "",
 });
+
 
 const options = ref({
   years: [],
   countries: [],
   regions: [],
   crashCauses: [],
+  operators: [],
+  aircrafts: [],
 });
+
 
 function displayTitle(item) {
   const op = item?.operator?.trim();
@@ -255,10 +270,13 @@ function buildSearchParams() {
   if (filters.value.country) p.set("country", filters.value.country);
   if (filters.value.region) p.set("region", filters.value.region);
   if (filters.value.crashCause) p.set("crashCause", filters.value.crashCause);
+  if (filters.value.operator) p.set("operator", filters.value.operator);
+  if (filters.value.aircraft) p.set("aircraft", filters.value.aircraft);
 
   p.set("limit", "50");
   return p;
 }
+
 
 async function search() {
   loading.value = true;
@@ -283,10 +301,19 @@ function select(item) {
 
 function reset() {
   q.value = "";
-  filters.value = { year: "", survivors: "", country: "", region: "", crashCause: "" };
+  filters.value = {
+    year: "",
+    survivors: "",
+    country: "",
+    region: "",
+    crashCause: "",
+    operator: "",
+    aircraft: "",
+  };
   results.value = [];
   selected.value = null;
 }
+
 
 function openDetails(id) {
   router.push({ name: "crash-details", params: { id } });
@@ -319,6 +346,8 @@ async function loadFilterOptions() {
       options.value.countries = f.countries ?? [];
       options.value.regions = f.regions ?? [];
       options.value.crashCauses = f.crashCauses ?? [];
+      options.value.operators = f.operators ?? [];
+      options.value.aircrafts = f.aircrafts ?? [];
       return;
     }
   } catch {
@@ -336,6 +365,8 @@ async function loadFilterOptions() {
     const countries = new Set();
     const regions = new Set();
     const causes = new Set();
+  const operators = new Set();
+  const aircrafts = new Set();
 
     for (const c of data) {
       const y = yearOf(c);
@@ -343,12 +374,16 @@ async function loadFilterOptions() {
       if (c.country) countries.add(c.country);
       if (c.region) regions.add(c.region);
       if (c.crashCause) causes.add(c.crashCause);
+      if (c.operator) operators.add(c.operator);
+      if (c.aircraft) aircrafts.add(c.aircraft);
     }
 
     options.value.years = Array.from(years).sort((a, b) => b - a);
     options.value.countries = Array.from(countries).sort();
     options.value.regions = Array.from(regions).sort();
     options.value.crashCauses = Array.from(causes).sort();
+    options.value.operators = Array.from(operators).sort();
+    options.value.aircrafts = Array.from(aircrafts).sort();
   } catch {
     // ignore
   }

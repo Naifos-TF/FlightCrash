@@ -32,6 +32,8 @@ public interface CrashRepository extends JpaRepository<Crash, Long> {
           and (:country is null or :country = '' or c.country = :country)
           and (:region is null or :region = '' or c.region = :region)
           and (:crashCause is null or :crashCause = '' or c.crashCause = :crashCause)
+          and (:operator is null or :operator = '' or c.operator = :operator)
+          and (:aircraft is null or :aircraft = '' or c.aircraft = :aircraft)
         order by c.crashDate desc nulls last
     """)
     List<Crash> search(
@@ -41,6 +43,8 @@ public interface CrashRepository extends JpaRepository<Crash, Long> {
             @Param("country") String country,
             @Param("region") String region,
             @Param("crashCause") String crashCause,
+            @Param("operator") String operator,
+            @Param("aircraft") String aircraft,
             Pageable pageable
     );
 
@@ -85,4 +89,20 @@ public interface CrashRepository extends JpaRepository<Crash, Long> {
         order by c.crashCause asc
     """)
     List<String> distinctCrashCauses();
+
+    @Query("""
+        select distinct c.operator
+        from Crash c
+        where c.operator is not null and c.operator <> ''
+        order by c.operator asc
+        """)
+    List<String> distinctOperators();
+
+    @Query("""
+        select distinct c.aircraft
+        from Crash c
+        where c.aircraft is not null and c.aircraft <> ''
+        order by c.aircraft asc
+""")
+    List<String> distinctAircrafts();
 }
