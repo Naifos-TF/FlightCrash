@@ -9,10 +9,20 @@ services:
       - '9200'
       - '9300'
   postgres:
-    image: 'postgres:latest'
+    image: 'postgres:16'
+    container_name: flightcrash-postgres
     environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
+      POSTGRES_DB: flightcrash
+      POSTGRES_USER: flightcrash
+      POSTGRES_PASSWORD: flightcrash
     ports:
-      - '5432'
+      - "5432:5432"
+    volumes:
+      - flightcrash_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flightcrash -d flightcrash"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  flightcrash_pgdata:
