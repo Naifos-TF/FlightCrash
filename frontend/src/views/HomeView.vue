@@ -201,3 +201,197 @@
     </main>
   </div>
 </template>
+
+
+<script setup>
+import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import "@/assets/home.css";
+
+const router = useRouter();
+
+const q = ref("");
+const loading = ref(false);
+const apiOk = ref(false);
+
+const results = ref([]);
+const selected = ref(null);
+
+const filters = ref({
+  year: "",
+  survivors: "",
+  country: "",
+  region: "",
+  crashCause: "",
+  operator: "",
+  aircraft: "",
+});
+
+
+const options = ref({
+  years: [],
+  countries: [],
+  regions: [],
+  crashCauses: [],
+  operators: [],
+  aircrafts: [],
+});
+
+
+function displayTitle(item) {
+  const op = item?.operator?.trim();
+  const ac = item?.aircraft?.trim();
+  if (op && ac) return `${op} — ${ac}`;
+  return op || ac || `Crash #${item?.id ?? "—"}`;
+}
+
+function yearOf(item) {
+  const d = item?.crashDate;
+  if (!d || typeof d !== "string") return null;
+  // "YYYY-MM-DD"
+  return d.slice(0, 4);
+}
+
+async function pingApi() {
+  try {
+    const res = await fetch("/api/health");
+    apiOk.value = res.ok;
+  } catch {
+    apiOk.value = false;
+  }
+}
+
+function buildSearchParams() {
+  const p = new URLSearchParams();
+  if (q.value.trim()) p.set("q", q.value.trim());
+
+  if (filters.value.year) p.set("year", filters.value.year);
+  if (filters.value.survivors) p.set("survivors", filters.value.survivors);
+  if (filters.value.country) p.set("country", filters.value.country);
+  if (filters.value.region) p.set("region", filters.value.region);
+  if (filters.value.crashCause) p.set("crashCause", filters.value.crashCause);
+  if (filters.value.operator) p.set("operator", filters.value.operator);
+  if (filters.value.aircraft) p.set("aircraft", filters.value.aircraft);
+
+  p.set("limit", "50");
+  return p;
+}
+
+
+async function search() {
+  loading.value = true;
+  selected.value = null;
+
+  try {
+    const params = buildSearchParams();
+    const res = await fetch(`/api/crashes/search?${params.toString()}`);
+    if (!res.ok) throw new Error(`search failed: ${res.status}`);
+    const data = await res.json();
+
+    results.value = Array.isArray(data) ? data : [];
+    if (results.value.length) selected.value = results.value[0];
+  } finally {
+    loading.value = false;
+  }
+}
+
+function select(item) {
+  selected.value = item;
+}
+
+function reset() {
+  q.value = "";
+  filters.value = {
+    year: "",
+    survivors: "",
+    country: "",
+    region: "",
+    crashCause: "",
+    operator: "",
+    aircraft: "",
+  };
+  results.value = [];
+  selected.value = null;
+}
+
+
+function openDetails(id) {
+  router.push({ name: "crash-details", params: { id } });
+}
+
+function goHome() {
+  router.push({ name: "home" });
+}
+
+async function copyId(id) {
+  try {
+    await navigator.clipboard.writeText(id);
+  } catch {
+    prompt("Copy this ID:", id);
+  }
+}
+
+/**
+ * Charge les listes déroulantes.
+ * Recommandé: backend /api/crashes/facets.
+ * Fallback: prend un échantillon via search sans q (limit 500) et dérive les valeurs distinctes.
+ */
+async function loadFilterOptions() {
+  // 1) facets endpoint (si tu l’implémentes côté backend)
+  try {
+    const res = await fetch("/api/crashes/facets");
+    if (res.ok) {
+      const f = await res.json();
+      options.value.years = f.years ?? [];
+      options.value.countries = f.countries ?? [];
+      options.value.regions = f.regions ?? [];
+      options.value.crashCauses = f.crashCauses ?? [];
+      options.value.operators = f.operators ?? [];
+      options.value.aircrafts = f.aircrafts ?? [];
+      return;
+    }
+  } catch {
+    // ignore
+  }
+
+  // 2) fallback: sample search depuis la DB
+  try {
+    const res = await fetch(`/api/crashes/search?limit=500`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!Array.isArray(data)) return;
+
+    const years = new Set();
+    const countries = new Set();
+    const regions = new Set();
+    const causes = new Set();
+  const operators = new Set();
+  const aircrafts = new Set();
+
+    for (const c of data) {
+      const y = yearOf(c);
+      if (y) years.add(Number(y));
+      if (c.country) countries.add(c.country);
+      if (c.region) regions.add(c.region);
+      if (c.crashCause) causes.add(c.crashCause);
+      if (c.operator) operators.add(c.operator);
+      if (c.aircraft) aircrafts.add(c.aircraft);
+    }
+
+    options.value.years = Array.from(years).sort((a, b) => b - a);
+    options.value.countries = Array.from(countries).sort();
+    options.value.regions = Array.from(regions).sort();
+    options.value.crashCauses = Array.from(causes).sort();
+    options.value.operators = Array.from(operators).sort();
+    options.value.aircrafts = Array.from(aircrafts).sort();
+  } catch {
+    // ignore
+  }
+}
+
+onMounted(async () => {
+  await pingApi();
+  await loadFilterOptions();
+  await search(); // affiche un premier résultat (ou vide) selon ton backend
+});
+</script>
