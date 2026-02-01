@@ -37,15 +37,13 @@ RUN mvn -DskipTests package
 ############################
 # 3) Runtime (Render)
 ############################
+# --- runtime ---
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
-# Copie du jar (si plusieurs, adapte le pattern)
-COPY --from=be /app/backend/target/*.jar /app/app.jar
+# Ton build produit un .war repackagé Spring Boot => exécutable via java -jar
+COPY --from=be /app/backend/target/*.war /app/app.war
 
-# Render fournit PORT automatiquement
 ENV PORT=8080
 EXPOSE 8080
-
-# IMPORTANT: force Spring à écouter sur $PORT
-CMD ["sh", "-c", "java -jar /app/app.jar --server.port=${PORT}"]
+CMD ["sh", "-c", "java -jar /app/app.war --server.port=${PORT}"]
